@@ -10,5 +10,5 @@
 ## Week 7
 ### (31 May - 1 June) Sun-Mon
 - Finished EDA (Nithish + Brendan)
-- Started MLP (Nithish + Brendan)
+- Started MLP (Nithish + Brendan + YS)
 ## Week 8

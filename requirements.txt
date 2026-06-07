@@ -1,20 +1,8 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-from sklearn import tree
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
-from sklearn.tree import plot_tree
-from sklearn.metrics import classification_report, confusion_matrix
-
-from google.colab import files
-import sqlite3
-import warnings
-
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, confusion_matrix
-
-from sklearn.ensemble import RandomForestClassifier
-
-
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.1
+imbalanced-learn==0.12.3
+matplotlib==3.9.1
+seaborn==0.13.2
+PyYAML==6.0.1
+joblib==1.4.2

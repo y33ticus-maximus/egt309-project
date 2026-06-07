@@ -14,6 +14,8 @@ PROJECT TIMELINE:
 - Started MLP (Nithish + Brendan + YS)
 ## Week 8
 
+
+## Project Info
 PROJECT BACKGROUND:
 Many Elderly residents are living independently without adequtae care or awareness of their surroundings. Therefore there is a need to alert them of potentially hazardous conditions that could be detrimental to their health and wellbeing. One such condition could be the presence of high concentrations or volumes of gases such as Carbon Dioxide (CO2), Carbon Mononxide (CO), Metal Oxide. Another Conidtion is high environemntal conditions such as temperature or humidity. In such conditions, Resididents might begin to display signs such as distress or High Activity. 
 

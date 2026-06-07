@@ -1,6 +1,7 @@
 # egt309-project ([EDA Link](https://colab.research.google.com/drive/1SgkZeB_M22R0wYJbwPmeqcmYo2Tmaedv?usp=sharing#scrollTo=faa7e351))
 ### Members: Yee Sian, Nithish, Brendan
 
+PROJECT TIMELINE: 
 ## Week 6
 ### (25-26 May) Mon-Tues
 - created dockerfile (YS)

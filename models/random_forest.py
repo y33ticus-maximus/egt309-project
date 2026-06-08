@@ -17,87 +17,115 @@ warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 
-# ---------------- Load Data (from SQLite) -----------------
-# Task 2 requires the data to be fetched via SQLite from data/gas_monitoring.db
-conn = sqlite3.connect("data/gas_monitoring.db")
-df = pd.read_sql_query("SELECT * FROM gas_monitoring", conn)
-conn.close()
-new_df = df.copy()
+class RandomForestPipeline:
+    def __init__(self):
+        self.db_path = "data/gas_monitoring.db"
+        self.model_path = "saved_model/rf_model.pkl"
 
-# ---------------- Train Test Split -----------------
-X = new_df.drop("Activity Level", axis=1)
-X = X.drop("Session ID", axis=1)          # Session ID is an identifier, not a feature
-X = pd.get_dummies(X, drop_first=True)    # one-hot encode the categorical columns
+        self.df = None
+        self.new_df = None
 
-y = new_df["Activity Level"]
+        self.X = None
+        self.y = None
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y
-)
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
 
-# ---------------- Random Forest Classifier -----------------
-# max_depth and min_samples_leaf reduced from (50, 1) to (15, 5) to control
-# overfitting (the deeper forest scored 100% on training but only ~67% on test).
-rf_model = RandomForestClassifier(
-    n_estimators=300,
-    max_depth=15,
-    min_samples_split=2,
-    min_samples_leaf=5,
-    max_features="sqrt",
-    random_state=42,
-    class_weight="balanced",   # handles the class imbalance
-    n_jobs=-1
-)
+        self.rf_model = RandomForestClassifier(
+            n_estimators=1000,
+            max_depth=70,
+            min_samples_split=2,
+            min_samples_leaf=1,
+            max_features="sqrt",
+            random_state=42,
+            class_weight="balanced",
+            n_jobs=-1
+        )
 
-# Train model
-rf_model.fit(X_train, y_train)
+        self.train_pred = None
+        self.y_pred = None
 
-train_pred = rf_model.predict(X_train)
-y_pred = rf_model.predict(X_test)
+    def load_data(self):
+        conn = sqlite3.connect(self.db_path)
+        self.df = pd.read_sql_query("SELECT * FROM gas_monitoring", conn)
+        conn.close()
+        self.new_df = self.df.copy()
 
-# ---------------- Evaluation -----------------
-print("Training Accuracy:", accuracy_score(y_train, train_pred))
-print("Testing Accuracy:", accuracy_score(y_test, y_pred))
+    def train_test_split_data(self):
+        self.X = self.new_df.drop("Activity Level", axis=1)
+        self.X = self.X.drop("Session ID", axis=1)
+        self.X = pd.get_dummies(self.X, drop_first=True)
 
-print("\nAccuracy:", accuracy_score(y_test, y_pred))
-print("Precision:", precision_score(y_test, y_pred, average="weighted"))
-print("Recall:", recall_score(y_test, y_pred, average="weighted"))
-print("F1 Score:", f1_score(y_test, y_pred, average="weighted"))
+        self.y = self.new_df["Activity Level"]
 
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred))
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            self.X,
+            self.y,
+            test_size=0.2,
+            random_state=42,
+            stratify=self.y
+        )
 
-# Confusion matrix (saved to outputs/)
-cm = confusion_matrix(y_test, y_pred, labels=rf_model.classes_)
-plt.figure(figsize=(6, 4))
-sns.heatmap(cm, annot=True, fmt="d", cmap="Greens",
-            xticklabels=rf_model.classes_, yticklabels=rf_model.classes_)
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
-plt.title("Confusion Matrix - Random Forest")
-plt.tight_layout()
-plt.savefig("outputs/rf_confusion_matrix.png", dpi=120)
-plt.close()
-print("Saved outputs/rf_confusion_matrix.png")
+    def train_model(self):
+        self.rf_model.fit(self.X_train, self.y_train)
 
-# ---------------- Feature Importance -----------------
-# The problem statement asks which features matter most - Random Forest gives this.
-feature_imp = pd.Series(rf_model.feature_importances_,
-                        index=X.columns).sort_values(ascending=False)
-plt.figure(figsize=(8, 5))
-feature_imp.plot(kind="bar", color="seagreen")
-plt.ylabel("Relative Importance")
-plt.title("Random Forest Feature Importance")
-plt.tight_layout()
-plt.savefig("outputs/rf_feature_importance.png", dpi=120)
-plt.close()
-print("Saved outputs/rf_feature_importance.png")
+        self.train_pred = self.rf_model.predict(self.X_train)
+        self.y_pred = self.rf_model.predict(self.X_test)
 
-# ---------------- Save Model -----------------
-with open("saved_model/rf_model.pkl", "wb") as file:
-    pickle.dump(rf_model, file)
-print("Saved saved_model/rf_model.pkl")
+    def evaluate_model(self):
+        print("Training Accuracy:", accuracy_score(self.y_train, self.train_pred))
+        print("Testing Accuracy:", accuracy_score(self.y_test, self.y_pred))
+
+        print("\nAccuracy:", accuracy_score(self.y_test, self.y_pred))
+        print("Precision:", precision_score(self.y_test, self.y_pred, average="weighted"))
+        print("Recall:", recall_score(self.y_test, self.y_pred, average="weighted"))
+        print("F1 Score:", f1_score(self.y_test, self.y_pred, average="weighted"))
+
+        print("\nClassification Report:")
+        print(classification_report(self.y_test, self.y_pred))
+
+    def save_confusion_matrix(self):
+        cm = confusion_matrix(self.y_test, self.y_pred, labels=self.rf_model.classes_)
+        plt.figure(figsize=(6, 4))
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Greens",
+                    xticklabels=self.rf_model.classes_, yticklabels=self.rf_model.classes_)
+        plt.xlabel("Predicted")
+        plt.ylabel("Actual")
+        plt.title("Confusion Matrix - Random Forest")
+        plt.tight_layout()
+        plt.savefig("outputs/rf_confusion_matrix.png", dpi=120)
+        plt.close()
+        print("Saved outputs/rf_confusion_matrix.png")
+
+    def save_feature_importance(self):
+        feature_imp = pd.Series(self.rf_model.feature_importances_,
+                                index=self.X.columns).sort_values(ascending=False)
+        plt.figure(figsize=(8, 5))
+        feature_imp.plot(kind="bar", color="seagreen")
+        plt.ylabel("Relative Importance")
+        plt.title("Random Forest Feature Importance")
+        plt.tight_layout()
+        plt.savefig("outputs/rf_feature_importance.png", dpi=120)
+        plt.close()
+        print("Saved outputs/rf_feature_importance.png")
+
+    def save_model(self):
+        with open(self.model_path, "wb") as file:
+            pickle.dump(self.rf_model, file)
+        print("Saved saved_model/rf_model.pkl")
+
+    def run(self):
+        self.load_data()
+        self.train_test_split_data()
+        self.train_model()
+        self.evaluate_model()
+        self.save_confusion_matrix()
+        self.save_feature_importance()
+        self.save_model()
+
+
+if __name__ == "__main__":
+    pipeline = RandomForestPipeline()
+    pipeline.run()

@@ -1,12 +1,10 @@
-
-
 import json
 import os
 import sqlite3
 
 import joblib
 import matplotlib
-matplotlib.use("Agg")  # save plots to file (needed in Docker)
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 import pandas.api.types as ptypes
@@ -25,52 +23,26 @@ warnings.filterwarnings("ignore")
 
 
 def load_config(path="config.yaml"):
-    """Read all pipeline settings from the YAML config file."""
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
-
-#LOAD the already-cleaned data from SQLite
-
 class DataLoader:
-    """Loads the cleaned dataset from a SQLite table into a DataFrame."""
-
-    def __init__(self, db_path, table_name):
-        self.db_path = db_path
-        self.table_name = table_name
+    def __init__(self, csv_path):
+        self.csv_path = csv_path
 
     def load(self):
-        if not os.path.exists(self.db_path):
+        if not os.path.exists(self.csv_path):
             raise FileNotFoundError(
-                f"Database not found at '{self.db_path}'. "
-                "Run data_cleaning.py first to create the cleaned_data table."
+                f"File not found at '{self.csv_path}'. "
+                "Run data_cleaning.py first to create cleaned_data.csv."
             )
-        with sqlite3.connect(self.db_path) as conn:
-            tables = pd.read_sql(
-                "SELECT name FROM sqlite_master WHERE type='table'", conn
-            )["name"].tolist()
-            if self.table_name not in tables:
-                raise ValueError(
-                    f"Table '{self.table_name}' not found. Available: {tables}. "
-                    "Run data_cleaning.py first, or update data.table_name in config.yaml."
-                )
-            df = pd.read_sql(f"SELECT * FROM {self.table_name}", conn)
-        print(f"[1] Loaded {len(df)} rows, {df.shape[1]} columns from SQLite.")
+        df = pd.read_csv(self.csv_path)
+        print(f"[1] Loaded {len(df)} rows, {df.shape[1]} columns from cleaned_data.csv.")
         return df
 
 
-# =============================================================================
-# 2. MODEL-SPECIFIC FEATURE PREPARATION (no data cleaning here)
-# =============================================================================
 class FeaturePreparer:
-    """Turns the cleaned DataFrame into model-ready train/test arrays.
-
-    Only model preparation: drop identifier, split, one-hot encode, scale, and
-    SMOTE. The scaler and SMOTE are fit on the TRAINING split only, so no
-    information leaks from the test set.
-    """
-
     def __init__(self, cfg):
         self.cfg = cfg
         self.target_col = cfg["data"]["target_column"]
@@ -81,21 +53,17 @@ class FeaturePreparer:
         self.categorical_columns = []
 
     def prepare(self, df):
-        """Return X_train, X_test, y_train, y_test, class_names."""
         df = df.copy()
 
-        
         for col in self.drop_columns:
             if col in df.columns:
                 df = df.drop(columns=col)
-
 
         features = [c for c in df.columns if c != self.target_col]
         self.categorical_columns = [c for c in features
                                     if not ptypes.is_numeric_dtype(df[c])]
         print(f"[2] Categorical to encode: {self.categorical_columns}")
 
-    
         y = df[self.target_col]
         stratify = y if self.cfg["split"].get("stratify", True) else None
         train_df, test_df = train_test_split(
@@ -104,7 +72,6 @@ class FeaturePreparer:
             random_state=self.cfg["split"]["random_state"],
             stratify=stratify,
         )
-
 
         train_df = self._encode(train_df, fit=True)
         test_df = self._encode(test_df, fit=False)
@@ -121,13 +88,11 @@ class FeaturePreparer:
             X_test = pd.DataFrame(self.scaler.transform(X_test),
                                   columns=self.feature_columns, index=X_test.index)
 
-        # balance classes on the training set only
         X_train, y_train = self._resample(X_train, y_train)
 
         return X_train, X_test, y_train, y_test, list(self.label_encoder.classes_)
 
     def _encode(self, df, fit):
-        """One-hot encode categorical columns; align train/test feature sets."""
         df = pd.get_dummies(df, columns=self.categorical_columns, dummy_na=False)
         if fit:
             self.feature_columns = [c for c in df.columns if c != self.target_col]
@@ -137,7 +102,6 @@ class FeaturePreparer:
         return df
 
     def _resample(self, X, y):
-        """Balance the classes in the training data (config-driven)."""
         method = (self.cfg["resampling"].get("method", "none") or "none").lower()
         rs = self.cfg["resampling"].get("random_state", 42)
         samplers = {"smote": SMOTE(random_state=rs),
@@ -150,9 +114,7 @@ class FeaturePreparer:
         return X_res, y_res
 
 
-
 def train_model(cfg, X_train, y_train):
-    """Build and fit a Logistic Regression model using config hyperparameters."""
     params = cfg["model"]["logistic_regression"]
     print(f"[3] Training Logistic Regression with params: {params}")
     model = LogisticRegression(**params)
@@ -160,9 +122,7 @@ def train_model(cfg, X_train, y_train):
     return model
 
 
-
 def evaluate_model(cfg, model, X_test, y_test, class_names):
-    """Score the model and save a confusion-matrix figure."""
     y_pred = model.predict(X_test)
     scores = {
         "model": "logistic_regression",
@@ -199,11 +159,10 @@ def evaluate_model(cfg, model, X_test, y_test, class_names):
     return scores
 
 
-
 def main():
     cfg = load_config("config.yaml")
 
-    loader = DataLoader(cfg["data"]["db_path"], cfg["data"]["table_name"])
+    loader = DataLoader(cfg["data"]["csv_path"])
     df = loader.load()
 
     prep = FeaturePreparer(cfg)

@@ -16,27 +16,22 @@ PROJECT TIMELINE:
 
 
 ## Project Info
+
+# ElderGuard Activity-Level Prediction — Logistic Regression Pipeline
+
 PROJECT BACKGROUND:
 Many Elderly residents are living independently without adequtae care or awareness of their surroundings. Therefore there is a need to alert them of potentially hazardous conditions that could be detrimental to their health and wellbeing. One such condition could be the presence of high concentrations or volumes of gases such as Carbon Dioxide (CO2), Carbon Mononxide (CO), Metal Oxide. Another Conidtion is high environemntal conditions such as temperature or humidity. In such conditions, Resididents might begin to display signs such as distress or High Activity. 
 
 By comparing and determining the realtionship between sensor readings and the activity level of the resident, we can learn which sensors/gases/conditions directly correlate to potentially dangerous conditions
 
-PROJECT OBJECTIVE: 
-Develop a ML model to evaluate the perforamnce/importance of various environmnetal sensors in determining whether
-elderly residents may be experiencing distress, medical episodes, or unsafe living conditions. 
-
-The Information Gathered will then be used to develop predictive models and early warning systems to alert the residents to the issue and ensure their safety and wellbeing.
-
 HYPOTHESIS/ASSUMPTIONS:
 The Activity Level Directly corroleates with the wellbeing of the resident
 High activity is a result of signs such as distress or medical episodes caused by unsafe living conditions
 
+PROJECT OBJECTIVE: 
+Develop End-to-end machine learning pipeline that predicts the **Activity Level** (`Low` / `Moderate` / `High`) of elderly residents from environmental sensor and indoor-air-quality data, using **Logistic Regression/Decision Tree Classifier/Random Forest Classifier**. The Goal is to evaluate the perforamnce/importance of various environmnetal sensors in determining whetherelderly residents may be experiencing distress, medical episodes, or unsafe living conditions. 
 
-# ElderGuard Activity-Level Prediction — Logistic Regression Pipeline
-
-End-to-end machine learning pipeline that predicts the **Activity Level**
-(`Low` / `Moderate` / `High`) of elderly residents from environmental sensor
-and indoor-air-quality data, using **Logistic Regression**.
+The Information Gathered will then be used to develop predictive models and early warning systems to alert the residents to the issue and ensure their safety and wellbeing. These models/systems will be dependent on these sensors
 
 > Project for EGT309 — Task 2 (End-to-end Machine Learning Pipeline).
 > (Group members own the other models in their own pipelines.)

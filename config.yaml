@@ -1,63 +1,101 @@
-# =============================================================================
-# Pipeline configuration
-# -----------------------------------------------------------------------------
-# Everything the pipeline needs is driven from this file so that behaviour can
-# be changed WITHOUT editing any Python code. Swap models, change resampling,
-# tune hyperparameters, etc. all from here.
-# =============================================================================
-
 data:
-  # Relative path required by the problem statement: data/gas_monitoring.db
+  #
   db_path: "data/gas_monitoring.db"
-  table_name: "gas_monitoring"      # change to match your real .db table name
+  table_name: "gas_monitoring"      
   target_column: "Activity Level"
-  # Columns to drop before training (IDs / leakage-prone columns).
-  # Session ID is an identifier, not a predictive signal, so we drop it.
   drop_columns:
     - "Session ID"
 
 preprocessing:
-  # Numeric columns are imputed with the median, categoricals with the mode.
+
   numeric_impute_strategy: "median"
   categorical_impute_strategy: "most_frequent"
-  # Outlier handling using the IQR rule. Set enabled: false to turn off.
+ 
   outlier_handling:
     enabled: true
-    method: "iqr"                   # iqr | none
-    iqr_multiplier: 1.5             # values beyond Q1-1.5*IQR / Q3+1.5*IQR are clipped
+    method: "iqr"                   
+    iqr_multiplier: 1.5             
   remove_duplicates: true
-  scale_features: true              # StandardScaler on numeric features
-  # Categorical columns are one-hot encoded. Leave empty to auto-detect.
+  scale_features: true             
+ 
   categorical_columns: []
 
 split:
   test_size: 0.2
   random_state: 42
-  stratify: true                    # keep class balance across train/test
+  stratify: true                   
 
-# Class imbalance handling applied to the TRAINING set only (no leakage).
-# options: none | smote | random_over | random_under
 resampling:
   method: "smote"
   random_state: 42
 
-# This pipeline focuses on the Logistic Regression model.
-# (Other models are owned by other group members in separate pipelines.)
-# Hyperparameters are config-driven so the model can be tuned without code edits.
 model:
   logistic_regression:
     max_iter: 1000
     random_state: 42
     C: 1.0
     solver: "lbfgs"
-    class_weight: null      # set to "balanced" to weight classes instead of/with resampling
+    class_weight: null      
 
 evaluation:
-  # Metric highlighted as most important for this problem. On an imbalanced,
-  # health-relevant dataset, weighted/macro F1 is more meaningful than accuracy.
-  primary_metric: "f1_weighted"     # accuracy | f1_weighted | f1_macro
+  primary_metric: "f1_weighted"    
   save_confusion_matrix: true
   output_dir: "outputs"
 
 output:
   model_dir: "saved_model"
+
+
+model:
+  random_forest:
+    n_estimators: 1000
+    max_depth: 70
+    min_samples_split: 2
+    min_samples_leaf: 1
+    max_features: "sqrt"
+    random_state: 42
+    class_weight: "balanced"
+    n_jobs: -1
+
+evaluation:
+  average: "weighted"
+  save_confusion_matrix: true
+  save_feature_importance: true
+  output_dir: "outputs"
+  confusion_matrix_path: "outputs/rf_confusion_matrix.png"
+  feature_importance_path: "outputs/rf_feature_importance.png"
+
+output:
+  model_path: "saved_model/rf_model.pkl"
+
+evaluation:
+  primary_metric: "f1_macro"
+  save_confusion_matrix: true
+  save_feature_importance: true
+  confusion_matrix_title: "Decision Tree Confusion Matrix"
+  feature_importance_title: "Decision Tree Feature Importances"
+
+output:
+  model_path: "decision_tree_model.joblib"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

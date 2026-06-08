@@ -32,6 +32,115 @@ The Activity Level Directly corroleates with the wellbeing of the resident
 High activity is a result of signs such as distress or medical episodes caused by unsafe living conditions
 
 
+# ElderGuard Activity-Level Prediction — Logistic Regression Pipeline
+
+End-to-end machine learning pipeline that predicts the **Activity Level**
+(`Low` / `Moderate` / `High`) of elderly residents from environmental sensor
+and indoor-air-quality data, using **Logistic Regression**.
+
+> Project for EGT309 — Task 2 (End-to-end Machine Learning Pipeline).
+> (Group members own the other models in their own pipelines.)
+
+---
+
+## 1. Group Information
+
+- **Group name:** _<fill in>_
+- **Members:** _<name 1>, <name 2>, <name 3>_
+- **My contribution:** `logistic_regression.py` (this pipeline)
+
+---
+
+## 2. Project Structure
+
+```
+gas-monitoring-pipeline/
+├── data/
+│   ├── gas_monitoring.db        # SQLite database the pipeline reads from
+│   └── cleaned_data.csv         # original imbalanced cleaned dataset (unchanged)
+├── outputs/                     # confusion_matrix.png + metrics_summary.json
+├── saved_model/                 # trained model + preprocessor (created on run)
+├── logistic_regression.py       # THE pipeline — all the code is in this one file
+├── config.yaml                  # all settings (change behaviour without editing code)
+├── requirements.txt
+├── Dockerfile                   # single, simple Docker setup
+├── run.sh                       # runs the pipeline
+└── README.md
+```
+
+Everything is in **one code file** (`logistic_regression.py`) organised into 6
+clear sections: load config -> ingest (SQLite) -> preprocess -> train ->
+evaluate -> save.
+
+---
+
+## 3. How to Run
+
+### Option A - With Docker
+
+```bash
+# build the image
+docker build -t gas-pipeline .
+
+# run the pipeline (mounts the folder so outputs appear on your machine)
+docker run --rm -v "$(pwd):/app" gas-pipeline
+```
+
+### Option B - Without Docker (plain Python)
+
+```bash
+pip install -r requirements.txt
+python logistic_regression.py
+```
+
+Trained model lands in `saved_model/`, plots and metrics in `outputs/`.
+
+---
+
+## 4. Configuration
+
+All settings live in **config.yaml** - change them without touching code:
+
+- database path / table name (`data.*`)
+- resampling strategy (`resampling.method`: smote / random_over / random_under / none)
+- Logistic Regression hyperparameters (`model.logistic_regression`: C, solver,
+  class_weight, max_iter)
+- feature scaling (`preprocessing.scale_features`)
+
+---
+
+## 5. What the Pipeline Does
+
+**Step 0 — Data cleaning (`data_cleaning.py`, run first):**
+   - reads the raw `gas_monitoring` table from SQLite
+   - removes duplicates and invalid/unrealistic values
+   - imputes missing values (median / mode)
+   - clips outliers using the IQR rule (the brief warns of contaminated data)
+   - standardises category labels
+   - writes the result to the `cleaned_data` table (+ `cleaned_data.csv`)
+
+**Then each model (e.g. `logistic_regression.py`) does model-only prep:**
+1. **Ingest (SQLite):** reads the `cleaned_data` table.
+2. **Prepare features:**
+   - drops `Session ID` (an identifier, not a predictor)
+   - one-hot encodes the categorical columns (Time of Day, HVAC Operation Mode,
+     Ambient Light Level)
+   - standard-scales numeric features
+   - balances classes with SMOTE — on the training set only (no leakage)
+3. **Train:** a Logistic Regression model (interpretable linear baseline).
+4. **Evaluate:** accuracy, weighted & macro F1, a per-class report, and a
+   confusion matrix.
+5. **Save:** the trained model and the fitted preprocessor.
+
+---
+
+## 6. Choice of Metrics
+
+The data is **imbalanced** (Low Activity dominates) and this is a **health
+early-warning** problem, so accuracy alone is misleading. We focus on
+**weighted / macro F1** and the **per-class recall** (especially for the rare
+High-Activity class), which the classification report and confusion matrix make
+visible.
 
 
 

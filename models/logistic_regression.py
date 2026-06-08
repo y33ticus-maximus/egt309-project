@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Logistic Regression Pipeline - ElderGuard Activity Level Prediction
-===================================================================
+Logistic Regression model pipeline
+==================================
+This script is STRICTLY the Logistic Regression model. It assumes the data has
+already been cleaned by data_cleaning.py (which writes the `cleaned_data` table).
 
-End-to-end machine learning pipeline in ONE file:
-    1. Ingest data from SQLite  (data/gas_monitoring.db)
-    2. Clean + feature engineer (handle missing values, outliers, encoding)
-    3. Train a Logistic Regression model
-    4. Evaluate (accuracy, F1, confusion matrix)
-    5. Save the trained model
+It only does model-specific preparation:
+    drop identifier  ->  train/test split  ->  one-hot encode  ->  scale  ->  SMOTE
+then trains and evaluates Logistic Regression.
 
-All settings live in config.yaml so nothing here needs to be edited to retune.
+All data cleaning (duplicates, invalid values, imputation, outliers, category
+standardisation) lives in data_cleaning.py — NOT here.
 
-Run it with:   python logistic_regression.py
+Run order:   python data_cleaning.py   then   python logistic_regression.py
 """
 
 import json
@@ -21,7 +21,7 @@ import sqlite3
 
 import joblib
 import matplotlib
-matplotlib.use("Agg")  # lets plots save to file without a display (needed in Docker)
+matplotlib.use("Agg")  # save plots to file (needed in Docker / no display)
 import matplotlib.pyplot as plt
 import pandas as pd
 import pandas.api.types as ptypes
@@ -39,9 +39,6 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-# =============================================================================
-# 1. LOAD CONFIG
-# =============================================================================
 def load_config(path="config.yaml"):
     """Read all pipeline settings from the YAML config file."""
     with open(path, "r", encoding="utf-8") as f:
@@ -49,21 +46,20 @@ def load_config(path="config.yaml"):
 
 
 # =============================================================================
-# 2. DATA INGESTION (SQLite)
+# 1. LOAD the already-cleaned data from SQLite
 # =============================================================================
 class DataLoader:
-    """Loads the monitoring dataset from a SQLite database into a DataFrame."""
+    """Loads the cleaned dataset from a SQLite table into a DataFrame."""
 
     def __init__(self, db_path, table_name):
         self.db_path = db_path
         self.table_name = table_name
 
     def load(self):
-        """Connect to the database and read the configured table."""
         if not os.path.exists(self.db_path):
             raise FileNotFoundError(
                 f"Database not found at '{self.db_path}'. "
-                "Put gas_monitoring.db inside the data/ folder."
+                "Run data_cleaning.py first to create the cleaned_data table."
             )
         with sqlite3.connect(self.db_path) as conn:
             tables = pd.read_sql(
@@ -72,7 +68,7 @@ class DataLoader:
             if self.table_name not in tables:
                 raise ValueError(
                     f"Table '{self.table_name}' not found. Available: {tables}. "
-                    "Update data.table_name in config.yaml."
+                    "Run data_cleaning.py first, or update data.table_name in config.yaml."
                 )
             df = pd.read_sql(f"SELECT * FROM {self.table_name}", conn)
         print(f"[1] Loaded {len(df)} rows, {df.shape[1]} columns from SQLite.")
@@ -80,13 +76,14 @@ class DataLoader:
 
 
 # =============================================================================
-# 3. PREPROCESSING (clean + feature engineering)
+# 2. MODEL-SPECIFIC FEATURE PREPARATION (no data cleaning here)
 # =============================================================================
-class DataPreprocessor:
-    """Cleans the data and produces model-ready train/test splits.
+class FeaturePreparer:
+    """Turns the cleaned DataFrame into model-ready train/test arrays.
 
-    Anything that "learns" from the data (imputation values, scaler, resampler)
-    is fit on the TRAINING split only, so no information leaks from the test set.
+    Only model preparation: drop identifier, split, one-hot encode, scale, and
+    SMOTE. The scaler and SMOTE are fit on the TRAINING split only, so no
+    information leaks from the test set.
     """
 
     def __init__(self, cfg):
@@ -96,33 +93,24 @@ class DataPreprocessor:
         self.label_encoder = LabelEncoder()
         self.scaler = None
         self.feature_columns = None
-        self.numeric_columns = []
         self.categorical_columns = []
 
     def prepare(self, df):
-        """Run the full cleaning flow. Returns X_train, X_test, y_train,
-        y_test, class_names."""
-        # --- basic cleaning -------------------------------------------------
+        """Return X_train, X_test, y_train, y_test, class_names."""
         df = df.copy()
-        for col in self.drop_columns:           # drop ID columns (e.g. Session ID)
+
+        # drop identifier columns (e.g. Session ID) - not a predictor
+        for col in self.drop_columns:
             if col in df.columns:
                 df = df.drop(columns=col)
-        if self.cfg["preprocessing"].get("remove_duplicates", True):
-            before = len(df)
-            df = df.drop_duplicates()
-            print(f"[2] Removed {before - len(df)} duplicate rows.")
-        df = df.dropna(subset=[self.target_col])  # need a label to learn
 
-        # --- identify column types -----------------------------------------
+        # figure out which feature columns are categorical (need encoding)
         features = [c for c in df.columns if c != self.target_col]
         self.categorical_columns = [c for c in features
                                     if not ptypes.is_numeric_dtype(df[c])]
-        self.numeric_columns = [c for c in features
-                                if c not in self.categorical_columns]
-        print(f"[2] Numeric: {self.numeric_columns}")
-        print(f"[2] Categorical: {self.categorical_columns}")
+        print(f"[2] Categorical to encode: {self.categorical_columns}")
 
-        # --- split first (so we only learn stats from training data) -------
+        # split first, so the scaler/SMOTE only learn from the training data
         y = df[self.target_col]
         stratify = y if self.cfg["split"].get("stratify", True) else None
         train_df, test_df = train_test_split(
@@ -132,16 +120,16 @@ class DataPreprocessor:
             stratify=stratify,
         )
 
-        # --- clean + engineer (fit on train, apply to test) ----------------
-        train_df = self._transform(train_df, fit=True)
-        test_df = self._transform(test_df, fit=False)
+        # one-hot encode (align test columns to training columns)
+        train_df = self._encode(train_df, fit=True)
+        test_df = self._encode(test_df, fit=False)
 
         X_train = train_df[self.feature_columns]
         X_test = test_df[self.feature_columns]
         y_train = self.label_encoder.fit_transform(train_df[self.target_col])
         y_test = self.label_encoder.transform(test_df[self.target_col])
 
-        # --- scale numeric features ----------------------------------------
+        # scale numeric features (matters for Logistic Regression)
         if self.cfg["preprocessing"].get("scale_features", True):
             self.scaler = StandardScaler()
             X_train = pd.DataFrame(self.scaler.fit_transform(X_train),
@@ -149,40 +137,13 @@ class DataPreprocessor:
             X_test = pd.DataFrame(self.scaler.transform(X_test),
                                   columns=self.feature_columns, index=X_test.index)
 
-        # --- balance classes on the training set only ----------------------
+        # balance classes on the training set only
         X_train, y_train = self._resample(X_train, y_train)
 
         return X_train, X_test, y_train, y_test, list(self.label_encoder.classes_)
 
-    def _transform(self, df, fit):
-        """Impute missing values, clip outliers, and one-hot encode."""
-        df = df.copy()
-
-        # impute (median for numbers, mode for categories)
-        if fit:
-            self._num_fill = {c: df[c].median() for c in self.numeric_columns}
-            self._cat_fill = {c: (df[c].mode().iloc[0] if not df[c].mode().empty
-                                  else "missing") for c in self.categorical_columns}
-        for c in self.numeric_columns:
-            df[c] = pd.to_numeric(df[c], errors="coerce").fillna(self._num_fill[c])
-        for c in self.categorical_columns:
-            df[c] = df[c].fillna(self._cat_fill[c])
-
-        # clip outliers using the IQR rule (bounds learned on train)
-        oh = self.cfg["preprocessing"].get("outlier_handling", {})
-        if oh.get("enabled"):
-            mult = oh.get("iqr_multiplier", 1.5)
-            if fit:
-                self._bounds = {}
-                for c in self.numeric_columns:
-                    q1, q3 = df[c].quantile(0.25), df[c].quantile(0.75)
-                    iqr = q3 - q1
-                    self._bounds[c] = (q1 - mult * iqr, q3 + mult * iqr)
-            for c in self.numeric_columns:
-                low, high = self._bounds[c]
-                df[c] = df[c].clip(low, high)
-
-        # one-hot encode categorical columns (this is what the model needs)
+    def _encode(self, df, fit):
+        """One-hot encode categorical columns; align train/test feature sets."""
         df = pd.get_dummies(df, columns=self.categorical_columns, dummy_na=False)
         if fit:
             self.feature_columns = [c for c in df.columns if c != self.target_col]
@@ -206,7 +167,7 @@ class DataPreprocessor:
 
 
 # =============================================================================
-# 4. TRAIN  (Logistic Regression)
+# 3. TRAIN
 # =============================================================================
 def train_model(cfg, X_train, y_train):
     """Build and fit a Logistic Regression model using config hyperparameters."""
@@ -218,7 +179,7 @@ def train_model(cfg, X_train, y_train):
 
 
 # =============================================================================
-# 5. EVALUATE
+# 4. EVALUATE
 # =============================================================================
 def evaluate_model(cfg, model, X_test, y_test, class_names):
     """Score the model and save a confusion-matrix figure."""
@@ -259,30 +220,24 @@ def evaluate_model(cfg, model, X_test, y_test, class_names):
 
 
 # =============================================================================
-# 6. MAIN  (runs the whole pipeline top to bottom)
+# 5. MAIN
 # =============================================================================
 def main():
     cfg = load_config("config.yaml")
 
-    # 1. ingest
     loader = DataLoader(cfg["data"]["db_path"], cfg["data"]["table_name"])
     df = loader.load()
 
-    # 2. preprocess
-    pre = DataPreprocessor(cfg)
-    X_train, X_test, y_train, y_test, class_names = pre.prepare(df)
+    prep = FeaturePreparer(cfg)
+    X_train, X_test, y_train, y_test, class_names = prep.prepare(df)
 
-    # 3. train
     model = train_model(cfg, X_train, y_train)
-
-    # 4. evaluate
     evaluate_model(cfg, model, X_test, y_test, class_names)
 
-    # 5. save model + preprocessor
     model_dir = cfg["output"]["model_dir"]
     os.makedirs(model_dir, exist_ok=True)
     joblib.dump(model, os.path.join(model_dir, "logistic_regression.joblib"))
-    joblib.dump(pre, os.path.join(model_dir, "preprocessor.joblib"))
+    joblib.dump(prep, os.path.join(model_dir, "preprocessor.joblib"))
     print(f"\n[5] Saved model to {model_dir}/. Done.")
 
 

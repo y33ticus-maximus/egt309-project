@@ -3,3 +3,4 @@
 # Add your teammate's third model here as another line.
 python logistic_regression.py
 python random_forest.py
+python dt.py

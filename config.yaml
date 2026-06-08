@@ -1,29 +1,27 @@
 data:
-  #
   db_path: "data/gas_monitoring.db"
-  table_name: "gas_monitoring"      
+  table_name: "gas_monitoring"
   target_column: "Activity Level"
   drop_columns:
     - "Session ID"
 
 preprocessing:
-
   numeric_impute_strategy: "median"
   categorical_impute_strategy: "most_frequent"
- 
+
   outlier_handling:
     enabled: true
-    method: "iqr"                   
-    iqr_multiplier: 1.5             
+    method: "iqr"
+    iqr_multiplier: 1.5
+
   remove_duplicates: true
-  scale_features: true             
- 
+  scale_features: true
   categorical_columns: []
 
 split:
   test_size: 0.2
   random_state: 42
-  stratify: true                   
+  stratify: true
 
 resampling:
   method: "smote"
@@ -35,18 +33,8 @@ model:
     random_state: 42
     C: 1.0
     solver: "lbfgs"
-    class_weight: null      
+    class_weight: null
 
-evaluation:
-  primary_metric: "f1_weighted"    
-  save_confusion_matrix: true
-  output_dir: "outputs"
-
-output:
-  model_dir: "saved_model"
-
-
-model:
   random_forest:
     n_estimators: 1000
     max_depth: 70
@@ -57,45 +45,38 @@ model:
     class_weight: "balanced"
     n_jobs: -1
 
+  decision_tree:
+    random_state: 16
+    max_depth: null
+    max_leaf_nodes: null
+    max_features: null
+    min_samples_leaf: 6
+    class_weight: "balanced"
+
 evaluation:
+  primary_metric: "f1_weighted"
   average: "weighted"
   save_confusion_matrix: true
   save_feature_importance: true
   output_dir: "outputs"
-  confusion_matrix_path: "outputs/rf_confusion_matrix.png"
-  feature_importance_path: "outputs/rf_feature_importance.png"
+
+  random_forest:
+    confusion_matrix_path: "outputs/rf_confusion_matrix.png"
+    feature_importance_path: "outputs/rf_feature_importance.png"
+
+  decision_tree:
+    primary_metric: "f1_macro"
+    confusion_matrix_title: "Decision Tree Confusion Matrix"
+    feature_importance_title: "Decision Tree Feature Importances"
 
 output:
-  model_path: "saved_model/rf_model.pkl"
+  model_dir: "saved_model"
 
-evaluation:
-  primary_metric: "f1_macro"
-  save_confusion_matrix: true
-  save_feature_importance: true
-  confusion_matrix_title: "Decision Tree Confusion Matrix"
-  feature_importance_title: "Decision Tree Feature Importances"
+  logistic_regression:
+    model_path: "saved_model/logistic_regression_model.joblib"
 
-output:
-  model_path: "decision_tree_model.joblib"
+  random_forest:
+    model_path: "saved_model/rf_model.pkl"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  decision_tree:
+    model_path: "saved_model/decision_tree_model.joblib"

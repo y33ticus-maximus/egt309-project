@@ -43,7 +43,8 @@ def main():
         max_depth=None,
         max_leaf_nodes=None,
         max_features=None,
-        min_samples_leaf=9
+        min_samples_leaf=6,
+        class_weight="balanced"
     )
 
     # Train model

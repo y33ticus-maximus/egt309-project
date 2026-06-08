@@ -1,5 +1,6 @@
 data:
   db_path: "data/gas_monitoring.db"
+  csv_path: "data/cleaned_data.csv"
   table_name: "gas_monitoring"
   target_column: "Activity Level"
   drop_columns:

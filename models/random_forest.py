@@ -16,10 +16,18 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
+import yaml
+
+def load_config(path="config.yaml"):
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+config = load_config("config.yaml")
+    
 
 class RandomForestPipeline:
     def __init__(self):
-        self.db_path = "data/gas_monitoring.db"
+        self.csv_path = "data/cleaned_data.csv"
         self.model_path = "saved_model/rf_model.pkl"
 
         self.df = None
@@ -48,9 +56,7 @@ class RandomForestPipeline:
         self.y_pred = None
 
     def load_data(self):
-        conn = sqlite3.connect(self.db_path)
-        self.df = pd.read_sql_query("SELECT * FROM gas_monitoring", conn)
-        conn.close()
+        self.df = pd.read_csv("data/cleaned_data.csv")
         self.new_df = self.df.copy()
 
     def train_test_split_data(self):
@@ -60,11 +66,13 @@ class RandomForestPipeline:
 
         self.y = self.new_df["Activity Level"]
 
+        split_config = config["split"]
+
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X,
             self.y,
-            test_size=0.2,
-            random_state=42,
+            test_size=split_config["test_size"],
+            random_state=split_config["random_state"],
             stratify=self.y
         )
 

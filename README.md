@@ -1,5 +1,4 @@
-# egt309-project ([EDA Link](https://colab.research.google.com/drive/1SgkZeB_M22R0wYJbwPmeqcmYo2Tmaedv?usp=sharing#scrollTo=faa7e351))
-### Members: Yee Sian, Nithish, Brendan
+# egt309-project 
 
 PROJECT TIMELINE: 
 ## Week 6
@@ -67,32 +66,9 @@ evaluate -> save.
 
 ---
 
-## 3. How to Run
+## 3. Config file
 
-### Option A - With Docker
-
-```bash
-# build the image
-docker build -t gas-pipeline .
-
-# run the pipeline (mounts the folder so outputs appear on your machine)
-docker run --rm -v "$(pwd):/app" gas-pipeline
-```
-
-### Option B - Without Docker (plain Python)
-
-```bash
-pip install -r requirements.txt
-python logistic_regression.py
-```
-
-Trained model lands in `saved_model/`, plots and metrics in `outputs/`.
-
----
-
-## 4. Configuration
-
-All settings live in **config.yaml** - change them without touching code:
+Parameters defined in **config.yaml** 
 
 - database path / table name (`data.*`)
 - resampling strategy (`resampling.method`: smote / random_over / random_under / none)
@@ -102,9 +78,9 @@ All settings live in **config.yaml** - change them without touching code:
 
 ---
 
-## 5. What the Pipeline Does
+## 5. Pipleline
 
-**Step 0 — Data cleaning (`data_cleaning.py`, run first):**
+**Step 0 — Data cleaning (`data_cleaning.py`):**
    - reads the raw `gas_monitoring` table from SQLite
    - removes duplicates and invalid/unrealistic values
    - imputes missing values (median / mode)
@@ -112,22 +88,21 @@ All settings live in **config.yaml** - change them without touching code:
    - standardises category labels
    - writes the result to the `cleaned_data` table (+ `cleaned_data.csv`)
 
-**Then each model (e.g. `logistic_regression.py`) does model-only prep:**
+**Then each model**
 1. **Ingest (SQLite):** reads the `cleaned_data` table.
 2. **Prepare features:**
-   - drops `Session ID` (an identifier, not a predictor)
-   - one-hot encodes the categorical columns (Time of Day, HVAC Operation Mode,
-     Ambient Light Level)
+   - drops `Session ID` 
+   - one-hot encodes the categorical columns (Time of Day, HVAC Operation Mode, Ambient Light Level)
    - standard-scales numeric features
-   - balances classes with SMOTE — on the training set only (no leakage)
-3. **Train:** a Logistic Regression model (interpretable linear baseline).
+   - balances classes with SMOTE 
+3. **Train:** model .
 4. **Evaluate:** accuracy, weighted & macro F1, a per-class report, and a
    confusion matrix.
 5. **Save:** the trained model and the fitted preprocessor.
 
 ---
 
-## 6. Choice of Metrics
+## 6. Evaluation
 
 The data is **imbalanced** (Low Activity dominates) and this is a **health
 early-warning** problem, so accuracy alone is misleading. We focus on

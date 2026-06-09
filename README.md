@@ -35,17 +35,20 @@ gas-monitoring-pipeline/
 │   └── cleaned_data.csv         # original imbalanced cleaned dataset (unchanged)
 ├── outputs/                     # confusion_matrix.png + metrics_summary.json
 ├── saved_model/                 # trained model + preprocessor (created on run)
-├── logistic_regression.py       # THE pipeline — all the code is in this one file
-├── config.yaml                  # all settings (change behaviour without editing code)
-├── requirements.txt
+├── logistic_regression.py       # Model 1 (Brendan)
+├── random_forest.py             # Model 2 (Nithish)
+├── decision_tree.py             # Model 3 (Yee Sian)
+├── data_cleaning.py             # clesn original dataset
+├── main.py                      # The pipeline 
+├── config.yaml                  # all settings/configurations/parameters (change variables without editing code)
+├── requirements.txt             # install necessary libraries (eg.pandas)
 ├── Dockerfile                   # single, simple Docker setup
 ├── run.sh                       # runs the pipeline
 └── README.md
 ```
 
-Everything is in **one code file** (`logistic_regression.py`) organised into 6
-clear sections: load config -> ingest (SQLite) -> preprocess -> train ->
-evaluate -> save.
+Everything is organised into 6 clear sections: 
+load config -> ingest (SQLite) -> preprocess -> train -> evaluate -> save.
 
 ---
 
@@ -55,7 +58,7 @@ Parameters defined in **config.yaml**
 
 - database path / table name (`data.*`)
 - resampling strategy (`resampling.method`: smote / random_over / random_under / none)
-- Logistic Regression hyperparameters (`model.logistic_regression`: C, solver,
+- model hyperparameters (eg. `model.logistic_regression`: C, solver,
   class_weight, max_iter)
 - feature scaling (`preprocessing.scale_features`)
 
@@ -66,13 +69,13 @@ Parameters defined in **config.yaml**
 **Step 0 — Data cleaning (`data_cleaning.py`):**
    - reads the raw `gas_monitoring` table from SQLite
    - removes duplicates and invalid/unrealistic values
-   - imputes missing values (median / mode)
-   - clips outliers using the IQR rule (the brief warns of contaminated data)
+   - imputes missing values (median or mode)
+   - clips outliers using the IQR rule 
    - standardises category labels
    - writes the result to the `cleaned_data` table (+ `cleaned_data.csv`)
 
 **Then each model**
-1. **Ingest (SQLite):** reads the `cleaned_data` table.
+1. **Ingest (SQLite):** reads the `cleaned_data` table or `cleaned_data.csv`
 2. **Prepare features:**
    - drops `Session ID` 
    - one-hot encodes the categorical columns (Time of Day, HVAC Operation Mode, Ambient Light Level)

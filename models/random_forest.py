@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 import yaml
 
-def load_config(path="config.yaml"):
+def load_config(path="config.yaml"):                         # load data/variables from config file
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
@@ -27,7 +27,7 @@ config = load_config("config.yaml")
 
 class RandomForestPipeline:
     def __init__(self):
-        self.csv_path = "data/cleaned_data.csv"
+        self.csv_path = "data/cleaned_data.csv"              # define paths to access data / dave model
         self.model_path = "saved_model/rf_model.pkl"
 
         self.df = None
@@ -41,7 +41,7 @@ class RandomForestPipeline:
         self.y_train = None
         self.y_test = None
 
-        self.rf_model = RandomForestClassifier(
+        self.rf_model = RandomForestClassifier(            # define model params
             n_estimators=1000,
             max_depth=70,
             min_samples_split=2,
@@ -55,11 +55,11 @@ class RandomForestPipeline:
         self.train_pred = None
         self.y_pred = None
 
-    def load_data(self):
+    def load_data(self):                                  # read csv file
         self.df = pd.read_csv("data/cleaned_data.csv")
         self.new_df = self.df.copy()
 
-    def train_test_split_data(self):
+    def train_test_split_data(self):                            # split dataset into training/testing
         self.X = self.new_df.drop("Activity Level", axis=1)
         self.X = self.X.drop("Session ID", axis=1)
         self.X = pd.get_dummies(self.X, drop_first=True)
@@ -68,7 +68,7 @@ class RandomForestPipeline:
 
         split_config = config["split"]
 
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(  # train test split using config file
             self.X,
             self.y,
             test_size=split_config["test_size"],
@@ -82,9 +82,9 @@ class RandomForestPipeline:
         self.train_pred = self.rf_model.predict(self.X_train)
         self.y_pred = self.rf_model.predict(self.X_test)
 
-    def evaluate_model(self):
-        print("Training Accuracy:", accuracy_score(self.y_train, self.train_pred))
-        print("Testing Accuracy:", accuracy_score(self.y_test, self.y_pred))
+    def evaluate_model(self):                                                                # model evaluation
+        print("Training Accuracy:", accuracy_score(self.y_train, self.train_pred))           # compare acc/recall/precision/f1
+        print("Testing Accuracy:", accuracy_score(self.y_test, self.y_pred))                 # f1 score is priority
 
         print("\nAccuracy:", accuracy_score(self.y_test, self.y_pred))
         print("Precision:", precision_score(self.y_test, self.y_pred, average="weighted"))
@@ -107,7 +107,7 @@ class RandomForestPipeline:
         plt.close()
         print("Saved outputs/rf_confusion_matrix.png")
 
-    def save_feature_importance(self):
+    def save_feature_importance(self):                                                        # determine feature importance for later analysis
         feature_imp = pd.Series(self.rf_model.feature_importances_,
                                 index=self.X.columns).sort_values(ascending=False)
         plt.figure(figsize=(8, 5))
@@ -124,7 +124,7 @@ class RandomForestPipeline:
             pickle.dump(self.rf_model, file)
         print("Saved saved_model/rf_model.pkl")
 
-    def run(self):
+    def run(self):                         # pipeline
         self.load_data()
         self.train_test_split_data()
         self.train_model()

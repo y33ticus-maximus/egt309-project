@@ -1,6 +1,3 @@
-# egt309-project 
-
-## Project Info
 
 # ElderGuard Activity-Level Prediction — Logistic Regression Pipeline
 

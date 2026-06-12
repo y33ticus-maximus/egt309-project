@@ -18,16 +18,20 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 import yaml
 
-def load_config(path="config.yaml"):                         # load data/variables from config file
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+class RandomForestPipeline:
 
-config = load_config("config.yaml")
+    def load_config(path="config.yaml"):                         # load data/variables from config file
+     with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)\
+        
+    config = load_config("config.yaml")
+    split_config = config["split"]
+    rf_param = config["model"]["random_forest"]
+
     
 
-class RandomForestPipeline:
     def __init__(self):
-        self.csv_path = self.csv_path
+        self.csv_path = self.config["data"]["csv_path"]
         # self.csv_path = "data/cleaned_data.csv"              # define paths to access data / dave model
         self.model_path = "saved_model/rf_model.pkl"
 
@@ -43,14 +47,14 @@ class RandomForestPipeline:
         self.y_test = None
 
         self.rf_model = RandomForestClassifier(            # define model params
-            n_estimators=1000,
-            max_depth=70,
-            min_samples_split=2,
-            min_samples_leaf=1,
-            max_features="sqrt",
-            random_state=42,
-            class_weight="balanced",
-            n_jobs=-1
+            n_estimators = self.rf_param["n_estimators"],
+            max_depth = self.rf_param["max_depth"],
+            min_samples_split = self.rf_param["min_samples_split"],
+            min_samples_leaf = self.rf_param["min_samples_leaf"],
+            max_features = self.rf_param["max_features"],
+            random_state = self.rf_param["random_state"],
+            class_weight = self.rf_param["class_weight"],
+            n_jobs = self.rf_param["n_jobs"]
         )
 
         self.train_pred = None
@@ -67,13 +71,11 @@ class RandomForestPipeline:
 
         self.y = self.new_df["Activity Level"]
 
-        split_config = config["split"]
-
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(  # train test split using config file
             self.X,
             self.y,
-            test_size=split_config["test_size"],
-            random_state=split_config["random_state"],
+            test_size=self.split_config["test_size"],
+            random_state=self.split_config["random_state"],
             stratify=self.y
         )
 

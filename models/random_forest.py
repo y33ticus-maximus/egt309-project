@@ -27,7 +27,8 @@ config = load_config("config.yaml")
 
 class RandomForestPipeline:
     def __init__(self):
-        self.csv_path = "data/cleaned_data.csv"              # define paths to access data / dave model
+        self.csv_path = self.csv_path
+        # self.csv_path = "data/cleaned_data.csv"              # define paths to access data / dave model
         self.model_path = "saved_model/rf_model.pkl"
 
         self.df = None
@@ -56,7 +57,7 @@ class RandomForestPipeline:
         self.y_pred = None
 
     def load_data(self):                                  # read csv file
-        self.df = pd.read_csv("data/cleaned_data.csv")
+        self.df = pd.read_csv(self.csv_path)
         self.new_df = self.df.copy()
 
     def train_test_split_data(self):                            # split dataset into training/testing

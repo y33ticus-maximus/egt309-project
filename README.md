@@ -157,7 +157,7 @@ docker build -t elderguard-pipeline .
 docker run --rm elderguard-pipeline
 
 
-The Docker container will run run.sh, which then runs main.py
+The Docker container will run run.sh, which then runs main.py, which runs the pipline that runs data_cleaning.py as well as the 3 other models
 
 ---
 

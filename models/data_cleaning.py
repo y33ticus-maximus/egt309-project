@@ -1,4 +1,5 @@
 
+
 import os
 import sqlite3
 
@@ -7,12 +8,18 @@ matplotlib.use("Agg")            # save plots to file (no GUI needed)
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import yaml
 
-DB_PATH = "data/gas_monitoring.db"
+def load_config(path="config.yaml"):                         # load data/variables from config file
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)\
+    
+config = load_config("config.yaml")
+
 os.makedirs("outputs", exist_ok=True)
 
 # 1. Load the RAW table from SQLite
-conn = sqlite3.connect(DB_PATH)
+conn = sqlite3.connect(config['data']['db_path'])
 df = pd.read_sql_query("SELECT * FROM gas_monitoring", conn)
 print(f"Loaded raw data: {df.shape}")
 
@@ -31,6 +38,7 @@ valid_data = (
 new_df = new_df[valid_data]
 
 # ---------------- Median Imputation ----------------
+# replace null values with the median value
 for col in ["Humidity", "MetalOxideSensor_Unit2", "CO_GasSensor"]:
     new_df[col] = new_df[col].fillna(new_df[col].median())
 new_df["Ambient Light Level"] = new_df["Ambient Light Level"].fillna("unknown")
@@ -72,8 +80,9 @@ plt.tight_layout()
 plt.savefig("outputs/correlation_heatmap.png", dpi=120); plt.close()
 
 # ---------------- Save the cleaned dataset ----------------
-new_df.to_csv("data/cleaned_data.csv", index=False)
-# Write cleaned data back to SQLite as `cleaned_data` (this is what the models read)
+new_df.to_csv(config['data']['csv_path'], index=False)
+
+# Write cleaned data back to SQLite as `cleaned_data` \
 new_df.to_sql("cleaned_data", conn, if_exists="replace", index=False)
 conn.close()
 print(f"Cleaned data saved: {new_df.shape} -> data/cleaned_data.csv and table 'cleaned_data'")

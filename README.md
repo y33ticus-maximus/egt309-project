@@ -169,7 +169,7 @@ The Docker container will run run.sh, which then runs main.py
 * removes duplicates and invalid/unrealistic values
 * imputes missing values (median or mode)
 * clips outliers using the IQR rule
-* standardises category labels
+* standardises category labels for consistency (eg. Low_activity vs low activity)
 * writes the result to the cleaned_data table (+ cleaned_data.csv)
 
 ### Then each model

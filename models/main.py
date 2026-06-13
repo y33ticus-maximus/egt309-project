@@ -1,9 +1,17 @@
+from data_cleaning import clean_data
 from logistic_regression import main as run_logistic_regression
 from dt_model import main as run_decision_tree
 from random_forest import RandomForestPipeline
 
 
 def main():
+
+    print("\n==============================")
+    print("Cleaning Data")
+    print("==============================")
+    clean_data()
+
+
     print("\n==============================")
     print("Running Logistic Regression")
     print("==============================")

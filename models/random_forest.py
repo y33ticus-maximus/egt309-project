@@ -19,9 +19,8 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 import yaml
 
 class RandomForestPipeline:
-
-    def load_config(path="config.yaml"):                         # load data/variables from config file
-     with open(path, "r", encoding="utf-8") as f:
+    def load_config(path="config.yaml"):                         # from config file
+     with open(path, "r", encoding="utf-8") as f:                # allows code to take variable from that file
         return yaml.safe_load(f)\
         
     config = load_config("config.yaml")
@@ -29,13 +28,13 @@ class RandomForestPipeline:
     rf_param = config["model"]["random_forest"]
 
     
-
+    
     def __init__(self):
         self.csv_path = self.config["data"]["csv_path"]
         # self.csv_path = "data/cleaned_data.csv"              # define paths to access data / dave model
-        self.model_path = "saved_model/rf_model.pkl"
+        self.model_path = self.config["output"]["random_forest"]["model_path"]
 
-        self.df = None
+        self.df = None      # defining varaible
         self.new_df = None
 
         self.X = None
@@ -46,28 +45,29 @@ class RandomForestPipeline:
         self.y_train = None
         self.y_test = None
 
-        self.rf_model = RandomForestClassifier(            # define model params
-            n_estimators = self.rf_param["n_estimators"],
-            max_depth = self.rf_param["max_depth"],
-            min_samples_split = self.rf_param["min_samples_split"],
-            min_samples_leaf = self.rf_param["min_samples_leaf"],
-            max_features = self.rf_param["max_features"],
+        self.train_pred = None
+        self.y_pred = None
+                                                                     # define model params
+        self.rf_model = RandomForestClassifier(           
+            n_estimators = self.rf_param["n_estimators"],            # to make predictions more stable
+            max_depth = self.rf_param["max_depth"],                  # limit depth to reduce overfitting
+            min_samples_split = self.rf_param["min_samples_split"],  # split node when it has at least 2 samples
+            min_samples_leaf = self.rf_param["min_samples_leaf"],    # each final leaf to contain at least 1 sample
+            max_features = self.rf_param["max_features"],            # Uses only some features at each split to reduce overfitting
             random_state = self.rf_param["random_state"],
-            class_weight = self.rf_param["class_weight"],
+            class_weight = self.rf_param["class_weight"],            # Balanced to cater to class imbalance in dataset
             n_jobs = self.rf_param["n_jobs"]
         )
 
-        self.train_pred = None
-        self.y_pred = None
 
     def load_data(self):                                  # read csv file
         self.df = pd.read_csv(self.csv_path)
         self.new_df = self.df.copy()
 
     def train_test_split_data(self):                            # split dataset into training/testing
-        self.X = self.new_df.drop("Activity Level", axis=1)
-        self.X = self.X.drop("Session ID", axis=1)
-        self.X = pd.get_dummies(self.X, drop_first=True)
+        self.X = self.new_df.drop("Activity Level", axis=1)     # Remove Activity level from feature dataset
+        self.X = self.X.drop("Session ID", axis=1)              # drop session ID as it contains no meaningful data
+        self.X = pd.get_dummies(self.X, drop_first=True)        # OHE, cvt categorical class columns into numeric to model can read
 
         self.y = self.new_df["Activity Level"]
 
@@ -79,7 +79,7 @@ class RandomForestPipeline:
             stratify=self.y
         )
 
-    def train_model(self):
+    def train_model(self):                                    # train Model
         self.rf_model.fit(self.X_train, self.y_train)
 
         self.train_pred = self.rf_model.predict(self.X_train)
@@ -122,7 +122,7 @@ class RandomForestPipeline:
         plt.close()
         print("Saved outputs/rf_feature_importance.png")
 
-    def save_model(self):
+    def save_model(self):                          # save model
         with open(self.model_path, "wb") as file:
             pickle.dump(self.rf_model, file)
         print("Saved saved_model/rf_model.pkl")

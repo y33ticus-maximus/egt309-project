@@ -43,13 +43,13 @@ gas-monitoring-pipeline/
 ├── logistic_regression.py       # Model 1 (Brendan)
 ├── random_forest.py             # Model 2 (Nithish)
 ├── decision_tree.py             # Model 3 (Yee Sian)
-├── data_cleaning.py             # clesn original dataset
-├── main.py                      # The pipeline 
+├── data_cleaning.py             # clean original dataset
+├── main.py                      # The pipeline (contains all 3 models)
 ├── config.yaml                  # all settings/configurations/parameters (change variables without editing code)
 ├── requirements.txt             # install necessary libraries (eg.pandas)
-├── Dockerfile                   # single, simple Docker setup
-├── run.sh                       # runs the pipeline
-└── README.md
+├── Dockerfile                   # docker setup
+├── run.sh                       # runs the pipeline (main.py)
+└── README.md                    # Project Info
 ```
 
 Everything is organised into 6 clear sections:

@@ -14,9 +14,9 @@ High activity is a result of signs such as distress or medical episodes caused b
 
 ## Project Objective
 
-Develop End-to-end machine learning pipeline that predicts the **Activity Level** (`Low` / `Moderate` / `High`) of elderly residents from environmental sensor and indoor-air-quality data, using **Logistic Regression/Decision Tree Classifier/Random Forest Classifier**. The Goal is to evaluate the perforamnce/importance of various environmnetal sensors in determining whetherelderly residents may be experiencing distress, medical episodes, or unsafe living conditions.
+Develop End-to-end machine learning pipeline that predicts the **Activity Level** (Low / Moderate / High) of elderly residents from environmental sensor and indoor-air-quality data, using Logistic Regression/Decision Tree Classifier/Random Forest Classifier. The Goal is to evaluate the perforamnce/importance of various environmnetal sensors in determining whetherelderly residents may be experiencing distress, medical episodes, or unsafe living conditions.
 
-The Information Gathered will then be used to develop predictive models and early warning systems to alert the residents to the issue and ensure their safety and wellbeing. These models/systems will be dependent on these sensors
+The Information Gathered will then be used to develop predictive models and early warning systems to alert the residents to the issue and ensure their safety and wellbeing. These models/systems will be dependent on these sensors which are deemed to be more important
 
 ---
 
@@ -24,7 +24,7 @@ The Information Gathered will then be used to develop predictive models and earl
 
 ## 1. Group Information
 
-* **Members:** Brendan, Yee Sian, Nithish
+*  Members: Brendan, Yee Sian, Nithish
 * 'logistic_regression.py' - Brendan
 * 'random_forest.py' - Nithish
 * 'dt_model.py' - Yee Sian
@@ -64,8 +64,7 @@ The dataset contains reading from environmental sensors as well as other informa
 
 ### Columns
 
-### Input Features
-
+Numerical Columns: 
 * Time of Day
 * Temperature
 * Humidity
@@ -76,14 +75,14 @@ The dataset contains reading from environmental sensors as well as other informa
 * MetalOxideSensor_Unit3
 * MetalOxideSensor_Unit4
 * CO_GasSensor
+
+Categorical Columns: 
 * HVAC Operation Mode
 * Ambient Light Level
 
-### Target Variable
+* Activity Level 
 
-* Activity Level
-
-The target variable represents the resident’s activity level, classified as:
+The activity level is the taget variable of the model and is classified as: 
 
 * Low Activity
 * Moderate Activity
@@ -103,26 +102,26 @@ The target variable represents the resident’s activity level, classified as:
 
 ### Logistic Regression
 
-* max_iter: maxi number of training iterations
-* C: controls regularisation strength
-* solver: optimisation method used by the model
-* class_weight: handles class imbalance
+* `max_iter`: maxi number of training iterations
+* `C`: controls regularisation strength
+* `solver`: optimisation method used by the model
+* `class_weight`: handles class imbalance
 
 ### Decision Tree
 
-* max_depth: maximum depth of the tree
-* min_samples_leaf: minimum number of samples required in a leaf node
-* class_weight="balanced": gives more importance to minority classes
+* `max_depth`: maximum depth of the tree
+* `min_samples_leaf`: minimum number of samples required in a leaf node
+* `class_weight="balanced"`: gives more importance to minority classes
 
 ### Random Forest
 
-* n_estimators: number of decision trees
-* max_depth: max depth of each tree
-* min_samples_split: minimum samples needed to split a node
-* min_samples_leaf: minimum samples required in a leaf node
-* max_features="sqrt": limits features considered at each split
-* class_weight="balanced": handle class imbalance
-* n_jobs=-1: use CPU core
+* `n_estimators`: number of decision trees
+* `max_depth`: max depth of each tree
+* `min_samples_split`: minimum samples needed to split a node
+* `min_samples_leaf`: minimum samples required in a leaf node
+* `max_features="sqrt"`: limits features considered at each split
+* `class_weight="balanced"`: handle class imbalance
+* `n_jobs=-1`: use CPU core
 
 ---
 
@@ -143,28 +142,20 @@ Parameters defined in **config.yaml**
 To Be done using Docker
 
 ### Install dependencies locally
-
-```bash
 pip install -r requirements.txt
-```
+
 
 ### Run the full pipeline locally
-
-```bash
 python main.py
-```
+
 
 ### Build the Docker image
-
-```bash
 docker build -t elderguard-pipeline .
-```
+
 
 ### Run the container
-
-```bash
 docker run --rm elderguard-pipeline
-```
+
 
 The Docker container will run run.sh, which then runs main.py
 
@@ -172,42 +163,41 @@ The Docker container will run run.sh, which then runs main.py
 
 ## 8. ML Pipeline
 
-### Step 0 — Data cleaning (`data_cleaning.py`)
+### Step 0 — Data cleaning (data_cleaning.py)
 
-* reads the raw `gas_monitoring` table from SQLite
+* reads the raw gas_monitoring table from SQLite
 * removes duplicates and invalid/unrealistic values
 * imputes missing values (median or mode)
 * clips outliers using the IQR rule
 * standardises category labels
-* writes the result to the `cleaned_data` table (+ `cleaned_data.csv`)
+* writes the result to the cleaned_data table (+ cleaned_data.csv)
 
 ### Then each model
 
-1. **Ingest (SQLite):** reads the `cleaned_data` table or `cleaned_data.csv`
+1. **Ingest (SQLite):** reads the cleaned_data table or cleaned_data.csv
 
 2. **Prepare features:**
 
-   * drops `Session ID`
-   * one-hot encodes the categorical columns (Time of Day, HVAC Operation Mode, Ambient Light Level)
-   * standard-scales numeric features
+   * drops Session ID (as it does not contain information meaningful to model performance)
+   * one-hot encodes the categorical columns (As models are unable to ingest non-numeric data)
+   * standard-scales numeric features 
    * balances classes with SMOTE
 
-3. **Train:** model .
+3. **Train:** model 
 
-4. **Evaluate:** accuracy, weighted & macro F1, a per-class report, and a
+4. **Evaluate:** accuracy, weighted & macro F1, a per-class report, 
    confusion matrix.
 
-5. **Save:** the trained model and the fitted preprocessor.
+5. **Save:** the trained model.
 
 ---
 
 ## 9. Evaluation
 
-The data is **imbalanced** (Low Activity dominates) and this is a **health
-early-warning** problem, so accuracy alone is misleading. We focus on
+The data is imbalanced (Low Activity dominates) and this is a health
+early-warning problem, so accuracy alone is misleading. We focus on
 **weighted / macro F1** and the **per-class recall** (especially for the rare
-High-Activity class), which the classification report and confusion matrix make
-visible.
+High-Activity class), which the classification report and confusion matrix displays.
 
 ---
 

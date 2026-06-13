@@ -1,4 +1,4 @@
-# Simple Dockerfile for the Logistic Regression pipeline.
+
 # Build:  docker build -t gas-pipeline .
 # Run:    docker run --rm -v "$(pwd):/app" gas-pipeline
 

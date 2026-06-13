@@ -1,6 +1,6 @@
 
-# Build:  docker build -t gas-pipeline .
-# Run:    docker run --rm -v "$(pwd):/app" gas-pipeline
+# docker build -t gas-monitoring-pipeline .
+# docker run --rm gas-monitoring-pipeline
 
 FROM python:3.11-slim
 

@@ -118,6 +118,18 @@ Parameters defined in **config.yaml**
 
 ---
 
+# 4. Set Up
+To Be done using Docker
+
+Install dependencies locally: pip install -r requirements.txt
+Run the full pipeline locally: python main.py
+
+Build the Docker image: docker build -t elderguard-pipeline .
+
+Run the container: docker run --rm elderguard-pipeline
+
+The Docker container will run run.sh, which then runs main.py
+
 # 5. ML Pipeline
 
 **Step 0 — Data cleaning (`data_cleaning.py`):**

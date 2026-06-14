@@ -1,5 +1,4 @@
-# model_trainer.py
-
+import yaml
 import os
 import joblib
 import pandas as pd
@@ -19,12 +18,17 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 
+def load_config(path="config.yaml"):
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
-class ActivityModelTrainer:
-    def __init__(self, data_path, model_type="random_forest", model_path="saved_model/model.joblib"):
-        self.data_path = data_path
+class ActivityModelTrainer:    
+    def __init__(self, config_path="config.yaml", model_type="random_forest"):
+        self.config = load_config(config_path)
+
+        self.data_path = self.config["data"]["csv_path"]
         self.model_type = model_type
-        self.model_path = model_path
+        self.model_path = self.config["output"][model_type]["model_path"]
 
         self.df = None
         self.X = None
@@ -38,11 +42,20 @@ class ActivityModelTrainer:
         self.label_encoder = LabelEncoder()
         self.model = None
 
-    def load_data(self):
-        self.df = pd.read_csv(self.data_path)
-        print("Data loaded successfully.")
-        print("Dataset shape:", self.df.shape)
+    def __init__(self, csv_path):
+        self.csv_path = csv_path
 
+    def load(self):   # loading data
+        if not os.path.exists(self.csv_path):
+            raise FileNotFoundError(
+                f"File not found at '{self.csv_path}'. "
+                "Run data_cleaning.py first to create cleaned_data.csv."
+            )
+
+        df = pd.read_csv(self.csv_path)
+        print(f"[1] Loaded {len(df)} rows, {df.shape[1]} columns from {self.csv_path}.")
+        return df
+    
     def prepare_data(self):
         df_processed = self.df.copy()
 
@@ -68,7 +81,7 @@ class ActivityModelTrainer:
         # Use a copy for model-specific column removal so original processed data is preserved
         X_processed = self.X.copy()
 
-        if self.model_type == "decision_tree":
+        if self.model_type == "decision_tree":  # dropping columns that may not help the model in predicting activity level
             irrelevant_columns = [
                 "Time of Day",
                 "HVAC Operation Mode",
@@ -77,53 +90,39 @@ class ActivityModelTrainer:
             X_processed = X_processed.drop(columns=[col for col in irrelevant_columns if col in X_processed.columns], errors="ignore")
 
         # One-hot encode categorical columns
-        self.X = pd.get_dummies(X_processed)
+        self.X = pd.get_dummies(X_processed) # model doesn't understand meaning of words, it's just text to them
 
         print("Data prepared successfully.")
         print("Feature shape:", self.X.shape)
 
     def split_data(self):
+        split_config = self.config["split"]
+
+        stratify_value = self.y if split_config.get("stratify", True) else None
+
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X,
             self.y,
-            test_size=0.2,
-            random_state=42,
-            stratify=self.y
-        )
-
+            test_size=split_config["test_size"],
+            random_state=split_config["random_state"],
+            stratify=stratify_value
+)
+        
         print("Train-test split completed.")
         print("Training rows:", self.X_train.shape[0])
         print("Testing rows:", self.X_test.shape[0])
 
     def choose_model(self):
+        params = self.config["model"][self.model_type] # take param values from config.yaml
+
         if self.model_type == "logistic_regression":
-            self.model = LogisticRegression(
-                max_iter=1000,
-                class_weight="balanced",
-                random_state=42
-            )
+            self.model = LogisticRegression(**params)
 
         elif self.model_type == "random_forest":
-            self.model = RandomForestClassifier(
-                n_estimators=700,
-                max_depth=50,
-                min_samples_split=2,
-                min_samples_leaf=1,
-                max_features="sqrt",
-                random_state=42,
-                class_weight="balanced",
-                n_jobs=-1
-            )
+            self.model = RandomForestClassifier(**params)
 
         elif self.model_type == "decision_tree":
-            self.model = DecisionTreeClassifier(
-                random_state=42,
-                max_depth=None,
-                max_leaf_nodes=None,
-                max_features=None,
-                min_samples_leaf=6,
-                class_weight="balanced"
-            )
+            self.model = DecisionTreeClassifier(**params)
 
         else:
             raise ValueError("Invalid model_type. Choose 'logistic_regression', 'random_forest', or 'decision_tree'.")
@@ -208,10 +207,11 @@ class ActivityModelTrainer:
 
 if __name__ == "__main__":
     trainer = ActivityModelTrainer(
-        data_path="data/cleaned_data.csv",
-        model_type="random_forest",
-        model_path="saved_model/random_forest_model.joblib"
+        config_path="config.yaml",
+        model_type="random_forest"  
     )
+
+    trainer.run_pipeline()
 
 # random forest as default as it's best performing, change model_type("logistic_regression","decision_tree") to use other models
     trainer.run_pipeline()
